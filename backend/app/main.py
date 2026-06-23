@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import documents
+from app.routes import documents, chat
 
 app = FastAPI(
     title="Multi-doc RAG Chatbot",
@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(documents.router)
-
+app.include_router(chat.router)
 
 @app.get("/")
 def root():

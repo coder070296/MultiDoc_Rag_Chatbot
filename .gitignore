@@ -1,0 +1,19 @@
+# env
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# local data
+backend/uploads/
+backend/chroma_db/
+uploads/
+chroma_db/
+
+# OS
+.DS_Store
+Thumbs.db
