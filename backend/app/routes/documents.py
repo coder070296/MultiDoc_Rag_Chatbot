@@ -1,5 +1,7 @@
 import os
 import shutil
+from pydantic import BaseModel
+from app.ingest.web_loader import load_and_chunk_website
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.core.config import settings
 from app.ingest.pdf_loader import load_and_chunk_pdf
@@ -7,6 +9,8 @@ from app.rag.vectorstore import get_vectorstore
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
+class WebsiteIngestRequest(BaseModel):
+    url: str
 
 @router.post("/upload-pdf")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -98,6 +102,24 @@ def reset_vector_db():
 
         return {
             "message": "ChromaDB reset successfully.",
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/ingest-website")
+def ingest_website(request: WebsiteIngestRequest):
+    try:
+        chunks = load_and_chunk_website(request.url)
+
+        vectorstore = get_vectorstore()
+        vectorstore.add_documents(chunks)
+
+        return {
+            "message": "Website ingested successfully.",
+            "url": request.url,
+            "chunks_created": len(chunks),
+            "citation_metadata_sample": chunks[0].metadata if chunks else {},
         }
 
     except Exception as e:
