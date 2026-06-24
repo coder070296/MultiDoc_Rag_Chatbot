@@ -6,10 +6,14 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.core.config import settings
 from app.ingest.pdf_loader import load_and_chunk_pdf
 from app.rag.vectorstore import get_vectorstore
+from app.ingest.youtube_loader import load_and_chunk_youtube
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 class WebsiteIngestRequest(BaseModel):
+    url: str
+
+class YouTubeIngestRequest(BaseModel):
     url: str
 
 @router.post("/upload-pdf")
@@ -117,6 +121,24 @@ def ingest_website(request: WebsiteIngestRequest):
 
         return {
             "message": "Website ingested successfully.",
+            "url": request.url,
+            "chunks_created": len(chunks),
+            "citation_metadata_sample": chunks[0].metadata if chunks else {},
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/ingest-youtube")
+def ingest_youtube(request: YouTubeIngestRequest):
+    try:
+        chunks = load_and_chunk_youtube(request.url)
+
+        vectorstore = get_vectorstore()
+        vectorstore.add_documents(chunks)
+
+        return {
+            "message": "YouTube transcript ingested successfully.",
             "url": request.url,
             "chunks_created": len(chunks),
             "citation_metadata_sample": chunks[0].metadata if chunks else {},
