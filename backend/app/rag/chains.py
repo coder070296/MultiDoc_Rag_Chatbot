@@ -1,8 +1,10 @@
 from typing import Optional, List
+from urllib import response
 from langchain_openai import ChatOpenAI
 from app.core.config import settings
 from app.rag.vectorstore import get_vectorstore
 from app.prompts.rag_prompt import build_rag_prompt
+from app.memory.session_store import format_chat_history, add_message
 
 
 def format_context(docs):
@@ -56,6 +58,7 @@ def ask_question(
     question: str,
     source_type: Optional[str] = None,
     filename: Optional[str] = None,
+    session_id: Optional[str] = "default",
 ):
     vectorstore = get_vectorstore()
 
@@ -83,10 +86,19 @@ def ask_question(
         temperature=0,
         api_key=settings.OPENAI_API_KEY,
     )
+    
+    chat_history = format_chat_history(session_id)
 
-    prompt = build_rag_prompt(question=question, context=context)
+    prompt = build_rag_prompt(
+        question=question,
+        context=context,
+        chat_history=chat_history,
+    )
 
     response = llm.invoke(prompt)
+    
+    add_message(session_id, "user", question)
+    add_message(session_id, "assistant", response.content)
 
     return {
         "answer": response.content,
@@ -96,4 +108,5 @@ def ask_question(
             "filename": filename,
         },
         "citations": build_citations(docs),
+        "session_id": session_id,
     }
