@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.rag.vectorstore import get_vectorstore
 from app.prompts.rag_prompt import build_rag_prompt
 from app.memory.session_store import format_chat_history, add_message
+from rank_bm25 import BM25Okapi
 
 
 def format_context(docs):
@@ -237,4 +238,150 @@ def get_vectorstore_stats():
         "total_chunks": len(data.get("ids", [])),
         "source_type_counts": source_type_counts,
         "filename_counts": filename_counts,
+    }
+    
+def hybrid_retrieval(
+    question: str,
+    source_type: Optional[str] = None,
+    filename: Optional[str] = None,
+    k: int = 5,
+):
+    vectorstore = get_vectorstore()
+
+    search_filter = {}
+
+    if source_type:
+        search_filter["source_type"] = source_type
+
+    if filename:
+        search_filter["filename"] = filename
+
+    all_data = vectorstore.get(where=search_filter if search_filter else None)
+
+    documents = all_data.get("documents", [])
+    metadatas = all_data.get("metadatas", [])
+    ids = all_data.get("ids", [])
+
+    if not documents:
+        return []
+
+    tokenized_docs = [doc.lower().split() for doc in documents]
+    bm25 = BM25Okapi(tokenized_docs)
+
+    tokenized_question = question.lower().split()
+    bm25_scores = bm25.get_scores(tokenized_question)
+
+    if search_filter:
+        vector_results = vectorstore.similarity_search_with_score(
+            question,
+            k=k,
+            filter=search_filter,
+        )
+    else:
+        vector_results = vectorstore.similarity_search_with_score(question, k=k)
+
+    combined = {}
+
+    for doc, score in vector_results:
+        chunk_id = doc.metadata.get("chunk_id")
+
+        combined[chunk_id] = {
+            "doc": doc,
+            "vector_score": float(score),
+            "bm25_score": 0.0,
+            "final_score": 1 / (1 + float(score)),
+        }
+
+    top_bm25_indexes = sorted(
+        range(len(bm25_scores)),
+        key=lambda i: bm25_scores[i],
+        reverse=True,
+    )[:k]
+
+    for index in top_bm25_indexes:
+        metadata = metadatas[index]
+        chunk_id = metadata.get("chunk_id")
+
+        from langchain_core.documents import Document
+
+        doc = Document(
+            page_content=documents[index],
+            metadata=metadata,
+        )
+
+        bm25_score = float(bm25_scores[index])
+
+        if chunk_id in combined:
+            combined[chunk_id]["bm25_score"] = bm25_score
+            combined[chunk_id]["final_score"] += bm25_score
+        else:
+            combined[chunk_id] = {
+                "doc": doc,
+                "vector_score": None,
+                "bm25_score": bm25_score,
+                "final_score": bm25_score,
+            }
+
+    ranked = sorted(
+        combined.values(),
+        key=lambda item: item["final_score"],
+        reverse=True,
+    )
+
+    return ranked[:k]
+
+def ask_question_hybrid(
+    question: str,
+    source_type: Optional[str] = None,
+    filename: Optional[str] = None,
+    session_id: Optional[str] = "default",
+):
+    results = hybrid_retrieval(
+        question=question,
+        source_type=source_type,
+        filename=filename,
+        k=5,
+    )
+
+    docs = [item["doc"] for item in results]
+
+    context = format_context(docs)
+    chat_history = format_chat_history(session_id)
+
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0,
+        api_key=settings.OPENAI_API_KEY,
+    )
+
+    prompt = build_rag_prompt(
+        question=question,
+        context=context,
+        chat_history=chat_history,
+    )
+
+    response = llm.invoke(prompt)
+
+    add_message(session_id, "user", question)
+    add_message(session_id, "assistant", response.content)
+
+    citations = build_citations(docs)
+
+    for index, citation in enumerate(citations):
+        citation["retrieval"] = {
+            "vector_score": results[index]["vector_score"],
+            "bm25_score": results[index]["bm25_score"],
+            "final_score": results[index]["final_score"],
+        }
+
+    return {
+        "answer": response.content,
+        "session_id": session_id,
+        "retrieval_mode": "hybrid",
+        "sources_used": len(docs),
+        "filters": {
+            "source_type": source_type,
+            "filename": filename,
+        },
+        "citations": citations,
     }

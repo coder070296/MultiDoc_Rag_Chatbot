@@ -2,8 +2,8 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from app.rag.chains import ask_question, stream_question, preview_retrieval, get_vectorstore_stats
 from app.memory.session_store import clear_session, clear_all_sessions
+from app.rag.chains import ask_question, stream_question, preview_retrieval, get_vectorstore_stats, ask_question_hybrid
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -76,5 +76,17 @@ def preview(request: ChatRequest):
 def stats():
     try:
         return get_vectorstore_stats()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/ask-hybrid")
+def ask_hybrid(request: ChatRequest):
+    try:
+        return ask_question_hybrid(
+            question=request.question,
+            source_type=request.source_type,
+            filename=request.filename,
+            session_id=request.session_id,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
