@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from app.rag.chains import ask_question, stream_question
+from app.rag.chains import ask_question, stream_question, preview_retrieval, get_vectorstore_stats
 from app.memory.session_store import clear_session, clear_all_sessions
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -57,5 +57,24 @@ def stream(request: ChatRequest):
             ),
             media_type="text/plain",
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/preview-retrieval")
+def preview(request: ChatRequest):
+    try:
+        return preview_retrieval(
+            question=request.question,
+            source_type=request.source_type,
+            filename=request.filename,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats")
+def stats():
+    try:
+        return get_vectorstore_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -161,3 +161,80 @@ def stream_question(
 
     add_message(session_id, "user", question)
     add_message(session_id, "assistant", final_answer)
+    
+def preview_retrieval(
+    question: str,
+    source_type: Optional[str] = None,
+    filename: Optional[str] = None,
+):
+    vectorstore = get_vectorstore()
+
+    search_filter = {}
+
+    if source_type:
+        search_filter["source_type"] = source_type
+
+    if filename:
+        search_filter["filename"] = filename
+
+    if search_filter:
+        docs = vectorstore.similarity_search_with_score(
+            question,
+            k=5,
+            filter=search_filter,
+        )
+    else:
+        docs = vectorstore.similarity_search_with_score(question, k=5)
+
+    results = []
+
+    for index, item in enumerate(docs, start=1):
+        doc, score = item
+
+        results.append(
+            {
+                "rank": index,
+                "score": score,
+                "source_type": doc.metadata.get("source_type"),
+                "source": doc.metadata.get("source"),
+                "filename": doc.metadata.get("filename"),
+                "page": doc.metadata.get("page"),
+                "url": doc.metadata.get("url"),
+                "video_id": doc.metadata.get("video_id"),
+                "chunk_id": doc.metadata.get("chunk_id"),
+                "preview": doc.page_content[:500],
+            }
+        )
+
+    return {
+        "question": question,
+        "filters": {
+            "source_type": source_type,
+            "filename": filename,
+        },
+        "results_count": len(results),
+        "results": results,
+    }
+
+
+def get_vectorstore_stats():
+    vectorstore = get_vectorstore()
+    data = vectorstore.get()
+
+    metadatas = data.get("metadatas", [])
+
+    source_type_counts = {}
+    filename_counts = {}
+
+    for metadata in metadatas:
+        source_type = metadata.get("source_type", "unknown")
+        filename = metadata.get("filename", "unknown")
+
+        source_type_counts[source_type] = source_type_counts.get(source_type, 0) + 1
+        filename_counts[filename] = filename_counts.get(filename, 0) + 1
+
+    return {
+        "total_chunks": len(data.get("ids", [])),
+        "source_type_counts": source_type_counts,
+        "filename_counts": filename_counts,
+    }
