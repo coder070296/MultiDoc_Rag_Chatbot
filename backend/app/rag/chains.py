@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Generator
 from urllib import response
 from langchain_openai import ChatOpenAI
 from app.core.config import settings
@@ -110,3 +110,54 @@ def ask_question(
         "citations": build_citations(docs),
         "session_id": session_id,
     }
+    
+def stream_question(
+    question: str,
+    source_type: Optional[str] = None,
+    filename: Optional[str] = None,
+    session_id: Optional[str] = "default",
+) -> Generator[str, None, None]:
+    vectorstore = get_vectorstore()
+
+    search_filter = {}
+
+    if source_type:
+        search_filter["source_type"] = source_type
+
+    if filename:
+        search_filter["filename"] = filename
+
+    if search_filter:
+        docs = vectorstore.similarity_search(
+            question,
+            k=5,
+            filter=search_filter,
+        )
+    else:
+        docs = vectorstore.similarity_search(question, k=5)
+
+    context = format_context(docs)
+    chat_history = format_chat_history(session_id)
+
+    prompt = build_rag_prompt(
+        question=question,
+        context=context,
+        chat_history=chat_history,
+    )
+
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0,
+        streaming=True,
+        api_key=settings.OPENAI_API_KEY,
+    )
+
+    final_answer = ""
+
+    for chunk in llm.stream(prompt):
+        token = chunk.content or ""
+        final_answer += token
+        yield token
+
+    add_message(session_id, "user", question)
+    add_message(session_id, "assistant", final_answer)
