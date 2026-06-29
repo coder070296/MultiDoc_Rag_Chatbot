@@ -3,6 +3,7 @@ from urllib.parse import urlparse, parse_qs
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from app.chunking.chunker import chunk_documents
 
 
 def extract_youtube_video_id(url: str) -> str:
@@ -41,12 +42,11 @@ def load_and_chunk_youtube(url: str) -> List[Document]:
         },
     )
 
-    splitter = RecursiveCharacterTextSplitter(
+    chunks = chunk_documents(
+        [document],
         chunk_size=1000,
         chunk_overlap=200,
     )
-
-    chunks = splitter.split_documents([document])
 
     for index, chunk in enumerate(chunks):
         chunk.metadata.update(

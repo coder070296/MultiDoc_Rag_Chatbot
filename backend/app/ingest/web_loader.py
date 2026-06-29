@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from app.chunking.chunker import chunk_documents
 
 
 def load_and_chunk_website(url: str) -> List[Document]:
@@ -28,12 +28,11 @@ def load_and_chunk_website(url: str) -> List[Document]:
         },
     )
 
-    splitter = RecursiveCharacterTextSplitter(
+    chunks = chunk_documents(
+        [document],
         chunk_size=1000,
-        chunk_overlap=200,
+        chunk_overlap=200
     )
-
-    chunks = splitter.split_documents([document])
 
     for index, chunk in enumerate(chunks):
         chunk.metadata.update(

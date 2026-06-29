@@ -1,20 +1,18 @@
 import os
 from typing import List
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-
+from app.chunking.chunker import chunk_documents
 
 def load_and_chunk_pdf(file_path: str, original_filename: str) -> List[Document]:
     loader = PyPDFLoader(file_path)
     pages = loader.load()
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-    )
-
-    chunks = splitter.split_documents(pages)
+    chunks = chunk_documents(
+    pages,
+    chunk_size=1000,
+    chunk_overlap=200,
+)
 
     for index, chunk in enumerate(chunks):
         page_number = chunk.metadata.get("page", 0) + 1
