@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 from app.chunking.chunker import chunk_documents
 
 
-def load_and_chunk_website(url: str) -> List[Document]:
+def load_and_chunk_website(url: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[Document]:
     response = requests.get(url, timeout=15)
     response.raise_for_status()
 
@@ -30,8 +30,8 @@ def load_and_chunk_website(url: str) -> List[Document]:
 
     chunks = chunk_documents(
         [document],
-        chunk_size=1000,
-        chunk_overlap=200
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
     )
 
     for index, chunk in enumerate(chunks):

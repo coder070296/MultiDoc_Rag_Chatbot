@@ -2,7 +2,7 @@ import os
 import shutil
 from pydantic import BaseModel
 from app.ingest.web_loader import load_and_chunk_website
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from app.core.config import settings
 from app.ingest.pdf_loader import load_and_chunk_pdf
 from app.rag.vectorstore import get_vectorstore
@@ -12,12 +12,18 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 
 class WebsiteIngestRequest(BaseModel):
     url: str
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
 
 class YouTubeIngestRequest(BaseModel):
     url: str
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
 
 @router.post("/upload-pdf")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(file: UploadFile = File(...),
+    chunk_size: int = Form(1000),
+    chunk_overlap: int = Form(200)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
 
@@ -28,7 +34,22 @@ async def upload_pdf(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        chunks = load_and_chunk_pdf(file_path, file.filename)
+        chunks = load_and_chunk_pdf(
+            file_path=file_path,
+            original_filename=file.filename,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+        
+        if chunk_size <= 0:
+            raise HTTPException(status_code=400, detail="chunk_size must be greater than 0.")
+
+        if chunk_overlap < 0:
+            raise HTTPException(status_code=400, detail="chunk_overlap cannot be negative.")
+
+        if chunk_overlap >= chunk_size:
+            raise HTTPException(status_code=400, detail="chunk_overlap must be smaller than chunk_size.")
+
         vectorstore = get_vectorstore()
         vectorstore.add_documents(chunks)
 
@@ -114,7 +135,20 @@ def reset_vector_db():
 @router.post("/ingest-website")
 def ingest_website(request: WebsiteIngestRequest):
     try:
-        chunks = load_and_chunk_website(request.url)
+        chunks = load_and_chunk_website(
+            url=request.url,
+            chunk_size=request.chunk_size,
+            chunk_overlap=request.chunk_overlap,
+        )
+        
+        if request.chunk_size <= 0:
+            raise HTTPException(status_code=400, detail="chunk_size must be greater than 0.")
+
+        if request.chunk_overlap < 0:
+            raise HTTPException(status_code=400, detail="chunk_overlap cannot be negative.")
+
+        if request.chunk_overlap >= request.chunk_size:
+            raise HTTPException(status_code=400, detail="chunk_overlap must be smaller than chunk_size.")
 
         vectorstore = get_vectorstore()
         vectorstore.add_documents(chunks)
@@ -132,7 +166,20 @@ def ingest_website(request: WebsiteIngestRequest):
 @router.post("/ingest-youtube")
 def ingest_youtube(request: YouTubeIngestRequest):
     try:
-        chunks = load_and_chunk_youtube(request.url)
+        chunks = load_and_chunk_youtube(
+            url=request.url,
+            chunk_size=request.chunk_size,
+            chunk_overlap=request.chunk_overlap,
+        )
+
+        if request.chunk_size <= 0:
+            raise HTTPException(status_code=400, detail="chunk_size must be greater than 0.")
+
+        if request.chunk_overlap < 0:
+            raise HTTPException(status_code=400, detail="chunk_overlap cannot be negative.")
+
+        if request.chunk_overlap >= request.chunk_size:
+            raise HTTPException(status_code=400, detail="chunk_overlap must be smaller than chunk_size.")
 
         vectorstore = get_vectorstore()
         vectorstore.add_documents(chunks)

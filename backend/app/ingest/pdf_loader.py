@@ -4,14 +4,19 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
 from app.chunking.chunker import chunk_documents
 
-def load_and_chunk_pdf(file_path: str, original_filename: str) -> List[Document]:
+def load_and_chunk_pdf(
+    file_path: str,
+    original_filename: str,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
+) -> List[Document]:
     loader = PyPDFLoader(file_path)
     pages = loader.load()
 
     chunks = chunk_documents(
     pages,
-    chunk_size=1000,
-    chunk_overlap=200,
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
 )
 
     for index, chunk in enumerate(chunks):

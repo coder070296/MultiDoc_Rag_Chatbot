@@ -19,7 +19,11 @@ def extract_youtube_video_id(url: str) -> str:
     return ""
 
 
-def load_and_chunk_youtube(url: str) -> List[Document]:
+def load_and_chunk_youtube(
+    url: str,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
+) -> List[Document]:
     video_id = extract_youtube_video_id(url)
 
     if not video_id:
@@ -44,8 +48,8 @@ def load_and_chunk_youtube(url: str) -> List[Document]:
 
     chunks = chunk_documents(
         [document],
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
     )
 
     for index, chunk in enumerate(chunks):
