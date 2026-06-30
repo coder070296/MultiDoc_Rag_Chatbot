@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.ingest.pdf_loader import load_and_chunk_pdf
 from app.rag.vectorstore import get_vectorstore
 from app.ingest.youtube_loader import load_and_chunk_youtube
+from app.sources.registry import list_sources
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -82,6 +83,13 @@ def list_documents():
         "count": len(files),
         "documents": files,
     }
+
+@router.get("/sources")
+def get_sources():
+    try:
+        return list_sources()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{filename}")
