@@ -21,6 +21,9 @@ class YouTubeIngestRequest(BaseModel):
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
+class DeleteSourceRequest(BaseModel):
+    source: str
+
 @router.post("/upload-pdf")
 async def upload_pdf(file: UploadFile = File(...),
     chunk_size: int = Form(1000),
@@ -91,6 +94,49 @@ def get_sources():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/sources/delete")
+def delete_source(request: DeleteSourceRequest):
+    try:
+        vectorstore = get_vectorstore()
+
+        existing = vectorstore.get(
+            where={
+                "source": request.source
+            }
+        )
+
+        ids = existing.get("ids", [])
+        metadatas = existing.get("metadatas", [])
+
+        if not ids:
+            raise HTTPException(status_code=404, detail="Source not found in vector database.")
+
+        source_type = metadatas[0].get("source_type") if metadatas else None
+        filename = metadatas[0].get("filename") if metadatas else None
+
+        vectorstore.delete(ids=ids)
+
+        deleted_file = False
+
+        if source_type == "pdf" and filename:
+            file_path = os.path.join(settings.UPLOAD_DIR, filename)
+
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                deleted_file = True
+
+        return {
+            "message": "Source deleted successfully.",
+            "source": request.source,
+            "source_type": source_type,
+            "chunks_deleted": len(ids),
+            "local_file_deleted": deleted_file,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{filename}")
 def delete_document(filename: str):
