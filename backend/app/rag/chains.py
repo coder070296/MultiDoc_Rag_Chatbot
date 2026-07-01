@@ -60,6 +60,9 @@ def ask_question(
     source_type: Optional[str] = None,
     filename: Optional[str] = None,
     session_id: Optional[str] = "default",
+    model: str = "gpt-4o-mini",
+    temperature: float = 0,
+    k: int = 5,
 ):
     vectorstore = get_vectorstore()
 
@@ -74,17 +77,17 @@ def ask_question(
     if search_filter:
         docs = vectorstore.similarity_search(
             question,
-            k=5,
+            k=k,
             filter=search_filter,
         )
     else:
-        docs = vectorstore.similarity_search(question, k=5)
+        docs = vectorstore.similarity_search(question, k=k)
 
     context = format_context(docs)
 
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
+        model=model,
+        temperature=temperature,
         api_key=settings.OPENAI_API_KEY,
     )
     
@@ -110,6 +113,12 @@ def ask_question(
         },
         "citations": build_citations(docs),
         "session_id": session_id,
+        "rag_config": {
+            "model": model,
+            "temperature": temperature,
+            "k": k,
+            "retrieval_mode": "vector",
+        },
     }
     
 def stream_question(
@@ -335,12 +344,15 @@ def ask_question_hybrid(
     source_type: Optional[str] = None,
     filename: Optional[str] = None,
     session_id: Optional[str] = "default",
+    model: str = "gpt-4o-mini",
+    temperature: float = 0,
+    k: int = 5,
 ):
     results = hybrid_retrieval(
         question=question,
         source_type=source_type,
         filename=filename,
-        k=5,
+        k=k,
     )
 
     docs = [item["doc"] for item in results]
@@ -349,8 +361,8 @@ def ask_question_hybrid(
     chat_history = format_chat_history(session_id)
 
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
+        model=model,
+        temperature=temperature,
         api_key=settings.OPENAI_API_KEY,
     )
 
@@ -384,4 +396,10 @@ def ask_question_hybrid(
             "filename": filename,
         },
         "citations": citations,
+        "rag_config": {
+            "model": model,
+            "temperature": temperature,
+            "k": k,
+            "retrieval_mode": "hybrid",
+        },
     }

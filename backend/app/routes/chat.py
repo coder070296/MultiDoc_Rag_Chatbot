@@ -14,6 +14,9 @@ class ChatRequest(BaseModel):
     filename: Optional[str] = None
     session_id: Optional[str] = "default"
 
+    model: Optional[str] = "gpt-4o-mini"
+    temperature: Optional[float] = 0
+    k: Optional[int] = 5
 
 @router.post("/ask")
 def ask(request: ChatRequest):
@@ -23,6 +26,9 @@ def ask(request: ChatRequest):
             source_type=request.source_type,
             filename=request.filename,
             session_id=request.session_id,
+            model=request.model,
+            temperature=request.temperature,
+            k=request.k,
         )
         return result
     except Exception as e:
@@ -87,6 +93,9 @@ def ask_hybrid(request: ChatRequest):
             source_type=request.source_type,
             filename=request.filename,
             session_id=request.session_id,
+            model=request.model,
+            temperature=request.temperature,
+            k=request.k,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
