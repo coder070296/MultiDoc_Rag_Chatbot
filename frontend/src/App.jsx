@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Upload, Send, FileText, Link, Youtube, Loader2 } from "lucide-react";
+import { Upload, Send, FileText, Link, PlayCircle, Loader2 } from "lucide-react";
 import { askQuestion, getSources, uploadPdf } from "./api/client";
 import "./App.css";
 
 function SourceIcon({ type }) {
   if (type === "website") return <Link size={16} />;
-  if (type === "youtube") return <Youtube size={16} />;
+  if (type === "youtube") return <PlayCircle size={16} />;
   return <FileText size={16} />;
 }
 

@@ -28,3 +28,23 @@ export async function getSources() {
   const response = await api.get("/documents/sources");
   return response.data;
 }
+
+export async function ingestWebsite(url, chunkSize = 1000, chunkOverlap = 200) {
+  const response = await api.post("/documents/ingest-website", {
+    url,
+    chunk_size: chunkSize,
+    chunk_overlap: chunkOverlap,
+  });
+
+  return response.data;
+}
+
+export async function ingestYoutube(url, chunkSize = 1000, chunkOverlap = 200) {
+  const response = await api.post("/documents/ingest-youtube", {
+    url,
+    chunk_size: chunkSize,
+    chunk_overlap: chunkOverlap,
+  });
+
+  return response.data;
+}

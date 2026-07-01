@@ -289,3 +289,14 @@ select,
     display: none;
   }
 }
+
+.url-input {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  outline: none;
+  margin: 10px 0 12px;
+}
