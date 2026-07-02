@@ -300,3 +300,48 @@ select,
   outline: none;
   margin: 10px 0 12px;
 }
+h1,
+h2,
+h3,
+p,
+span,
+label,
+small {
+  color: #e5e7eb;
+}
+
+.card h2,
+.sources-card h2,
+.citation-panel h2 {
+  color: #f9fafb;
+}
+
+button {
+  color: #ffffff;
+}
+
+button svg {
+  color: #ffffff;
+}
+
+button:disabled {
+  color: #cbd5e1;
+}
+
+button:disabled svg {
+  color: #cbd5e1;
+}
+.url-input {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  outline: none;
+  margin: 10px 0 12px;
+}
+
+.url-input::placeholder {
+  color: #9ca3af;
+}
