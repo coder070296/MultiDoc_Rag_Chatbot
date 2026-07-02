@@ -48,3 +48,16 @@ export async function ingestYoutube(url, chunkSize = 1000, chunkOverlap = 200) {
 
   return response.data;
 }
+
+export async function deleteSource(source) {
+  const response = await api.delete("/documents/sources/delete", {
+    data: { source },
+  });
+
+  return response.data;
+}
+
+export async function resetVectorDb() {
+  const response = await api.delete("/documents/admin/reset-db");
+  return response.data;
+}

@@ -345,3 +345,18 @@ button:disabled svg {
 .url-input::placeholder {
   color: #9ca3af;
 }
+
+.secondary-btn {
+  background: #374151;
+  margin-bottom: 10px;
+}
+
+.danger-btn {
+  background: #dc2626;
+  margin-top: 10px;
+}
+
+.small-btn {
+  padding: 8px 10px;
+  font-size: 13px;
+}

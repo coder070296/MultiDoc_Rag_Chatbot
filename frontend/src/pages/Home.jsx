@@ -9,8 +9,8 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { askQuestion, getSources, uploadPdf } from "../api/client";
 import UrlIngestCard from "../components/UrlIngestCard";
+import { askQuestion, getSources, uploadPdf, deleteSource, resetVectorDb } from "../api/client";
 
 function SourceIcon({ type }) {
   if (type === "website") return <Link size={16} />;
@@ -102,6 +102,33 @@ export default function Home() {
     }
   }
 
+  async function handleDeleteSource(source) {
+        const confirmed = confirm(`Delete this source?\n\n${source}`);
+        if (!confirmed) return;
+
+        try {
+            await deleteSource(source);
+            await loadSources();
+            alert("Source deleted successfully.");
+        } catch (error) {
+            alert(error?.response?.data?.detail || "Delete failed.");
+        }
+    }
+
+    async function handleResetDb() {
+        const confirmed = confirm("Reset entire vector database? This will delete all indexed sources.");
+        if (!confirmed) return;
+
+        try {
+            await resetVectorDb();
+            await loadSources();
+            setCitations([]);
+            alert("Vector DB reset successfully.");
+        } catch (error) {
+            alert(error?.response?.data?.detail || "Reset failed.");
+        }
+    }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -155,6 +182,14 @@ export default function Home() {
         <div className="card sources-card">
           <h2>Sources</h2>
 
+          <button className="secondary-btn" onClick={loadSources}>
+            Refresh Sources
+          </button>
+
+          <button className="danger-btn" onClick={handleResetDb}>
+            Reset Vector DB
+          </button>
+
           {sources.length === 0 ? (
             <p className="muted">No sources ingested yet.</p>
           ) : (
@@ -167,6 +202,12 @@ export default function Home() {
                   </div>
                   <p>{source.filename || source.source}</p>
                   <small>{source.chunks} chunks</small>
+                  <button
+                    className="danger-btn small-btn"
+                    onClick={() => handleDeleteSource(source.source)}
+                    >
+                    Delete
+                   </button>
                 </div>
               ))}
             </div>
