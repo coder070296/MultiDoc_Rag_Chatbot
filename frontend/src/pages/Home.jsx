@@ -82,35 +82,41 @@ export default function Home() {
 
     try {
 
-        let assistantAnswer = "";
+      let assistantAnswer = "";
 
-        setMessages((prev) => [
+      setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "" },
-        ]);
+      ]);
 
-        await streamQuestion(
+      await streamQuestion(
         {
-            question: userQuestion,
-            session_id: "frontend-session",
-            source_type: selectedSourceType || null,
-            model: "gpt-4o-mini",
-            temperature: 0,
-            k: 5,
+          question: userQuestion,
+          session_id: "frontend-session",
+          source_type: selectedSourceType || null,
+          model: "gpt-4o-mini",
+          temperature: 0,
+          k: 5,
         },
-        (token) => {
-            assistantAnswer += token;
+        (event) => {
+          if (event.type === "token") {
+            assistantAnswer += event.content;
 
             setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
                 role: "assistant",
                 content: assistantAnswer,
-            };
-            return updated;
+              };
+              return updated;
             });
+          }
+
+          if (event.type === "citations") {
+            setCitations(event.citations || []);
+          }
         }
-        );
+      );
     } catch (error) {
       setMessages((prev) => [
         ...prev,

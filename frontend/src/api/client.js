@@ -62,7 +62,7 @@ export async function resetVectorDb() {
   return response.data;
 }
 
-export async function streamQuestion(payload, onToken) {
+export async function streamQuestion(payload, onEvent) {
   const response = await fetch(`${API_BASE_URL}/chat/stream`, {
     method: "POST",
     headers: {
@@ -78,12 +78,28 @@ export async function streamQuestion(payload, onToken) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
 
+  let buffer = "";
+
   while (true) {
     const { done, value } = await reader.read();
 
     if (done) break;
 
-    const token = decoder.decode(value, { stream: true });
-    onToken(token);
+    buffer += decoder.decode(value, { stream: true });
+
+    const events = buffer.split("\n\n");
+    buffer = events.pop();
+
+    for (const event of events) {
+      const line = event.trim();
+
+      if (!line.startsWith("data:")) continue;
+
+      const jsonString = line.replace("data:", "").trim();
+
+      if (!jsonString) continue;
+
+      onEvent(JSON.parse(jsonString));
+    }
   }
 }

@@ -60,8 +60,11 @@ def stream(request: ChatRequest):
                 source_type=request.source_type,
                 filename=request.filename,
                 session_id=request.session_id,
+                model=request.model,
+                temperature=request.temperature,
+                k=request.k,
             ),
-            media_type="text/plain",
+            media_type="text/event-stream",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

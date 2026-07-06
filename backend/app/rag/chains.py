@@ -6,7 +6,7 @@ from app.rag.vectorstore import get_vectorstore
 from app.prompts.rag_prompt import build_rag_prompt
 from app.memory.session_store import format_chat_history, add_message
 from rank_bm25 import BM25Okapi
-
+import json
 
 def format_context(docs):
     formatted_chunks = []
@@ -126,6 +126,9 @@ def stream_question(
     source_type: Optional[str] = None,
     filename: Optional[str] = None,
     session_id: Optional[str] = "default",
+    model: str = "gpt-4o-mini",
+    temperature: float = 0,
+    k: int = 5,
 ) -> Generator[str, None, None]:
     vectorstore = get_vectorstore()
 
@@ -138,13 +141,9 @@ def stream_question(
         search_filter["filename"] = filename
 
     if search_filter:
-        docs = vectorstore.similarity_search(
-            question,
-            k=5,
-            filter=search_filter,
-        )
+        docs = vectorstore.similarity_search(question, k=k, filter=search_filter)
     else:
-        docs = vectorstore.similarity_search(question, k=5)
+        docs = vectorstore.similarity_search(question, k=k)
 
     context = format_context(docs)
     chat_history = format_chat_history(session_id)
@@ -156,8 +155,8 @@ def stream_question(
     )
 
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
+        model=model,
+        temperature=temperature,
         streaming=True,
         api_key=settings.OPENAI_API_KEY,
     )
@@ -167,11 +166,15 @@ def stream_question(
     for chunk in llm.stream(prompt):
         token = chunk.content or ""
         final_answer += token
-        yield token
+
+        yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
 
     add_message(session_id, "user", question)
     add_message(session_id, "assistant", final_answer)
-    
+
+    yield f"data: {json.dumps({'type': 'citations', 'citations': build_citations(docs)})}\n\n"
+    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
 def preview_retrieval(
     question: str,
     source_type: Optional[str] = None,
