@@ -61,3 +61,29 @@ export async function resetVectorDb() {
   const response = await api.delete("/documents/admin/reset-db");
   return response.data;
 }
+
+export async function streamQuestion(payload, onToken) {
+  const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Streaming request failed.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) break;
+
+    const token = decoder.decode(value, { stream: true });
+    onToken(token);
+  }
+}

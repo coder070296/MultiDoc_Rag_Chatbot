@@ -10,7 +10,14 @@ import {
 } from "lucide-react";
 
 import UrlIngestCard from "../components/UrlIngestCard";
-import { askQuestion, getSources, uploadPdf, deleteSource, resetVectorDb } from "../api/client";
+import {
+  askQuestion,
+  getSources,
+  uploadPdf,
+  deleteSource,
+  resetVectorDb,
+  streamQuestion,
+} from "../api/client";
 
 function SourceIcon({ type }) {
   if (type === "website") return <Link size={16} />;
@@ -74,21 +81,36 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const result = await askQuestion({
-        question: userQuestion,
-        session_id: "frontend-session",
-        source_type: selectedSourceType || null,
-        model: "gpt-4o-mini",
-        temperature: 0,
-        k: 5,
-      });
 
-      setMessages((prev) => [
+        let assistantAnswer = "";
+
+        setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: result.answer },
-      ]);
+        { role: "assistant", content: "" },
+        ]);
 
-      setCitations(result.citations || []);
+        await streamQuestion(
+        {
+            question: userQuestion,
+            session_id: "frontend-session",
+            source_type: selectedSourceType || null,
+            model: "gpt-4o-mini",
+            temperature: 0,
+            k: 5,
+        },
+        (token) => {
+            assistantAnswer += token;
+
+            setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+                role: "assistant",
+                content: assistantAnswer,
+            };
+            return updated;
+            });
+        }
+        );
     } catch (error) {
       setMessages((prev) => [
         ...prev,
