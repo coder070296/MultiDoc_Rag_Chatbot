@@ -19,7 +19,22 @@ export default function AuthGate({ children }) {
     }
   }
 
-  if (isAuthed) return children;
+    if (isAuthed) {
+        return (
+            <>
+            <button
+                className="logout-btn"
+                onClick={() => {
+                localStorage.removeItem("rag_authed");
+                setIsAuthed(false);
+                }}
+            >
+                Logout
+            </button>
+            {children}
+            </>
+        );
+    }
 
   return (
     <div className="auth-page">
