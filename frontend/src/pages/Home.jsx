@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useToast } from "../context/ToastContext";
 import {
   Upload,
   Send,
@@ -34,6 +35,7 @@ export default function Home() {
   const [selectedSourceType, setSelectedSourceType] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { showToast } = useToast();
 
   async function loadSources() {
     try {
@@ -57,9 +59,9 @@ export default function Home() {
       await uploadPdf(file);
       setFile(null);
       await loadSources();
-      alert("PDF uploaded successfully.");
+      showToast("PDF uploaded successfully.", "success");
     } catch (error) {
-      alert(error?.response?.data?.detail || "Upload failed.");
+      showToast(error?.response?.data?.detail || "Upload failed.", "error");
     } finally {
       setUploading(false);
     }
@@ -137,9 +139,9 @@ export default function Home() {
         try {
             await deleteSource(source);
             await loadSources();
-            alert("Source deleted successfully.");
+            showToast("Source deleted successfully.", "success");
         } catch (error) {
-            alert(error?.response?.data?.detail || "Delete failed.");
+            showToast(error?.response?.data?.detail || "Delete failed.", "error");
         }
     }
 
@@ -151,9 +153,9 @@ export default function Home() {
             await resetVectorDb();
             await loadSources();
             setCitations([]);
-            alert("Vector DB reset successfully.");
+            showToast("Vector DB reset successfully.", "success");
         } catch (error) {
-            alert(error?.response?.data?.detail || "Reset failed.");
+            showToast(error?.response?.data?.detail || "Reset failed.", "error");
         }
     }
 

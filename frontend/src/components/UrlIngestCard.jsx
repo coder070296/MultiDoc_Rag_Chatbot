@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, Loader2, PlayCircle } from "lucide-react";
 import { ingestWebsite, ingestYoutube } from "../api/client";
+import { useToast } from "../context/ToastContext";
 
 export default function UrlIngestCard({ onIngested }) {
   const [url, setUrl] = useState("");
   const [sourceType, setSourceType] = useState("website");
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   async function handleIngest() {
     if (!url.trim()) return;
@@ -21,9 +23,9 @@ export default function UrlIngestCard({ onIngested }) {
 
       setUrl("");
       await onIngested?.();
-      alert("Source ingested successfully.");
+      showToast("Source ingested successfully.", "success");
     } catch (error) {
-      alert(error?.response?.data?.detail || "Ingestion failed.");
+      showToast(error?.response?.data?.detail || "Ingestion failed.", "error");
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,11 @@
-import { FileText, Globe, Youtube, Zap, Quote, Brain } from "lucide-react";
+import { FileText, Globe, PlayCircle, Zap, Quote, Brain } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
 
 export default function LandingPage({ onLaunch }) {
   const features = [
     { icon: <FileText size={22} />, title: "PDF Ingestion" },
     { icon: <Globe size={22} />, title: "Website RAG" },
-    { icon: <Youtube size={22} />, title: "YouTube Transcripts" },
+    { icon: <PlayCircle size={22} />, title: "YouTube Transcripts" },
     { icon: <Zap size={22} />, title: "Streaming Answers" },
     { icon: <Quote size={22} />, title: "Source Citations" },
     { icon: <Brain size={22} />, title: "Hybrid Retrieval" },

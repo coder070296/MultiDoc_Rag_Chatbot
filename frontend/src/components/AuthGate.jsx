@@ -23,13 +23,14 @@ export default function AuthGate({ children }) {
         return (
             <>
             <button
-                className="logout-btn"
-                onClick={() => {
+              className="logout-btn"
+              onClick={() => {
                 localStorage.removeItem("rag_authed");
+                localStorage.removeItem("rag_launched");
                 setIsAuthed(false);
-                }}
+              }}
             >
-                Logout
+              Logout
             </button>
             {children}
             </>
