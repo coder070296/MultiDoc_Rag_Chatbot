@@ -159,6 +159,25 @@ export default function Home() {
         }
     }
 
+    function handleDrop(e) {
+      e.preventDefault();
+
+      const droppedFile = e.dataTransfer.files?.[0];
+
+      if (!droppedFile) return;
+
+      if (droppedFile.type !== "application/pdf") {
+        showToast("Only PDF files are allowed.", "error");
+        return;
+      }
+
+      setFile(droppedFile);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -173,13 +192,32 @@ export default function Home() {
         <div className="card">
           <h2>Upload PDF</h2>
 
-          <label className="upload-box">
-            <Upload size={24} />
-            <span>{file ? file.name : "Choose a PDF file"}</span>
+          <label
+            className={`upload-box ${file ? "has-file" : ""}`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}>
+            <Upload size={26} />
+            <span>
+              {file ? file.name : "Drop PDF here or click to upload"}
+            </span>
+
+            {file && <small>{(file.size / 1024 / 1024).toFixed(2)} MB selected</small>}
+
             <input
               type="file"
               accept="application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0])}
+              onChange={(e) => {
+                const selected = e.target.files?.[0];
+
+                if (!selected) return;
+
+                if (selected.type !== "application/pdf") {
+                  showToast("Only PDF files are allowed.", "error");
+                  return;
+                }
+
+                setFile(selected);
+              }}
             />
           </label>
 
