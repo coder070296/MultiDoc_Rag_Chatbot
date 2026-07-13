@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "../context/ToastContext";
 import {
@@ -8,6 +8,8 @@ import {
   Link,
   PlayCircle,
   Loader2,
+  Copy,
+  Check,
 } from "lucide-react";
 
 import UrlIngestCard from "../components/UrlIngestCard";
@@ -45,6 +47,15 @@ export default function Home() {
     return localStorage.getItem("rag_active_conversation") || crypto.randomUUID();
   });
 
+  const messagesEndRef = useRef(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
   async function loadSources() {
     try {
       const data = await getSources();
@@ -57,6 +68,20 @@ export default function Home() {
   useEffect(() => {
     loadSources();
   }, []);
+
+  async function handleCopyMessage(content, index) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageIndex(index);
+      showToast("Answer copied to clipboard.", "success");
+
+      setTimeout(() => {
+        setCopiedMessageIndex(null);
+      }, 2000);
+    } catch {
+      showToast("Could not copy the answer.", "error");
+    }
+  }
 
   async function handleUpload() {
     if (!file) return;
@@ -388,21 +413,45 @@ export default function Home() {
           ) : (
             messages.map((message, index) => (
               <div className={`message ${message.role}`} key={index}>
-                <div className="bubble">
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                <div className="message-content">
+                  <div className="bubble">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+
+                  {message.role === "assistant" && message.content && (
+                    <button
+                      className="copy-message-btn"
+                      onClick={() => handleCopyMessage(message.content, index)}
+                      title="Copy answer"
+                    >
+                      {copiedMessageIndex === index ? (
+                        <>
+                          <Check size={14} />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))
           )}
 
-          {loading && (
+          {loading && messages[messages.length - 1]?.content === "" && (
             <div className="message assistant">
-              <div className="bubble loading-bubble">
-                <Loader2 className="spin" size={16} />
-                Thinking...
+              <div className="bubble typing-bubble">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </section>
 
         <form className="ask-form" onSubmit={handleAsk}>
