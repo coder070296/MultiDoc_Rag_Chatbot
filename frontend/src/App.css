@@ -567,3 +567,38 @@ body {
 .upload-box small {
   color: #93c5fd;
 }
+
+.history-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 1fr 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-item button {
+  background: #0f172a;
+  border: 1px solid #374151;
+  text-align: left;
+  justify-content: flex-start;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.history-item.active button:first-child {
+  border-color: #2563eb;
+}
+
+.danger-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: #7f1d1d !important;
+  justify-content: center !important;
+}

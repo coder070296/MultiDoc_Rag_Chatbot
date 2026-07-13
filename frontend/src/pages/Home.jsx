@@ -37,6 +37,14 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const { showToast } = useToast();
 
+  const [conversations, setConversations] = useState(() => {
+    return JSON.parse(localStorage.getItem("rag_conversations") || "[]");
+  });
+
+  const [activeConversationId, setActiveConversationId] = useState(() => {
+    return localStorage.getItem("rag_active_conversation") || crypto.randomUUID();
+  });
+
   async function loadSources() {
     try {
       const data = await getSources();
@@ -75,10 +83,11 @@ export default function Home() {
     const userQuestion = question;
     setQuestion("");
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: userQuestion },
-    ]);
+    const userMessage = { role: "user", content: userQuestion };
+    const nextMessages = [...messages, userMessage];
+
+    setMessages(nextMessages);
+    saveConversation(nextMessages);
 
     setLoading(true);
 
@@ -119,6 +128,10 @@ export default function Home() {
           }
         }
       );
+      saveConversation([
+        ...nextMessages,
+        { role: "assistant", content: assistantAnswer },
+      ]);
     } catch (error) {
       setMessages((prev) => [
         ...prev,
@@ -178,6 +191,51 @@ export default function Home() {
       e.preventDefault();
     }
 
+    function saveConversation(updatedMessages) {
+      const title =
+        updatedMessages.find((msg) => msg.role === "user")?.content?.slice(0, 45) ||
+        "New Chat";
+
+      const updated = [
+        {
+          id: activeConversationId,
+          title,
+          messages: updatedMessages,
+          updatedAt: new Date().toISOString(),
+        },
+        ...conversations.filter((chat) => chat.id !== activeConversationId),
+      ];
+
+      setConversations(updated);
+      localStorage.setItem("rag_conversations", JSON.stringify(updated));
+      localStorage.setItem("rag_active_conversation", activeConversationId);
+    }
+
+    function startNewChat() {
+      const newId = crypto.randomUUID();
+      setActiveConversationId(newId);
+      setMessages([]);
+      setCitations([]);
+      localStorage.setItem("rag_active_conversation", newId);
+    }
+
+    function loadConversation(chat) {
+      setActiveConversationId(chat.id);
+      setMessages(chat.messages || []);
+      setCitations([]);
+      localStorage.setItem("rag_active_conversation", chat.id);
+    }
+
+    function deleteConversation(chatId) {
+      const updated = conversations.filter((chat) => chat.id !== chatId);
+      setConversations(updated);
+      localStorage.setItem("rag_conversations", JSON.stringify(updated));
+
+      if (chatId === activeConversationId) {
+        startNewChat();
+      }
+    }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -186,6 +244,36 @@ export default function Home() {
           <div>
             <h1>RAG Chatbot</h1>
             <p>Multi-source AI assistant</p>
+          </div>
+        </div>
+
+        <div className="card">
+          <button onClick={startNewChat}>+ New Chat</button>
+
+          <div className="history-list">
+            {conversations.length === 0 ? (
+              <p className="muted">No chat history yet.</p>
+            ) : (
+              conversations.map((chat) => (
+                <div
+                  className={`history-item ${
+                    chat.id === activeConversationId ? "active" : ""
+                  }`}
+                  key={chat.id}
+                >
+                  <button onClick={() => loadConversation(chat)}>
+                    {chat.title}
+                  </button>
+
+                  <button
+                    className="danger-icon"
+                    onClick={() => deleteConversation(chat.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
